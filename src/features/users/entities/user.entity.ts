@@ -2,15 +2,28 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Role } from '@shared/types';
+import { Team } from '@features/teams/entities/team.entity';
 
 @Entity()
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Index() // Index for faster team member lookups
+  @Column({ nullable: true })
+  teamId: string | null;
+
+  // Many to one (Many User) Joins (One Team)
+  @ManyToOne(() => Team, (team) => team.teamMembers)
+  @JoinColumn({ name: 'teamId' })
+  team: Team;
 
   @Column({ unique: true })
   email: string;
@@ -36,12 +49,11 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   passwordResetExpired: Date | null;
 
-  @Column({ default: false })
-  inTeam: boolean;
-
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  // relations
 }

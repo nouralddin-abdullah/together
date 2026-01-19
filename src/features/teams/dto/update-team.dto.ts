@@ -1,0 +1,30 @@
+import { HabitType, PrivacyTeam, StreakDurations } from '@shared/types';
+import { createZodDto } from 'nestjs-zod';
+import z from 'zod';
+
+const updateTeamSchema = z
+  .object({
+    description: z
+      .string()
+      .min(3, 'Description must be at least 3 characters')
+      .max(5000, 'Description must be at most 5000 characters'),
+    rules: z
+      .string()
+      .min(3, 'Rules must be at least 3 characters')
+      .max(5000, 'Rules must be at most 5000 characters'),
+    allowAnonymousFail: z.boolean(),
+    maxMembers: z
+      .number()
+      .min(2, 'Team must be at least 2 member')
+      .max(6, 'Team must be at most 6 members'),
+    wantedTeamStreak: z.enum(StreakDurations),
+    habitName: z
+      .string()
+      .min(3, 'Habit must be at least 3 characters')
+      .max(40, 'Habit must be at most 100 characters'),
+    habitType: z.enum(HabitType),
+    privacyType: z.enum(PrivacyTeam),
+  })
+  .partial();
+
+export class UpdateTeamDto extends createZodDto(updateTeamSchema) {}

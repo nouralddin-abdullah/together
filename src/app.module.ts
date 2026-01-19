@@ -14,6 +14,7 @@ import { RolesGuard } from './core/guards/roles.guard';
 // Feature modules
 import { UsersModule } from './features/users/users.module';
 import { HealthModule } from './features/health/health.module';
+import { TeamsModule } from './features/teams/teams.module';
 import { StorageModule, StorageProviderType } from './features/storage';
 import { MailModule, MailProviderType } from './features/mail';
 
@@ -161,6 +162,7 @@ import { AppService } from './app.service';
     PassportModule,
     UsersModule,
     HealthModule,
+    TeamsModule,
   ],
   controllers: [AppController],
   providers: [

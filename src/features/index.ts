@@ -6,3 +6,4 @@ export * from './users';
 export * from './health';
 export * from './mail';
 export * from './storage';
+export * from './teams';

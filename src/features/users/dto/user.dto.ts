@@ -21,5 +21,5 @@ export class UserDTO {
   role: Role;
 
   @Expose()
-  inTeam: boolean;
+  teamId: string;
 }
