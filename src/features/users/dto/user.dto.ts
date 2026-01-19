@@ -19,4 +19,7 @@ export class UserDTO {
 
   @Expose()
   role: Role;
+
+  @Expose()
+  inTeam: boolean;
 }

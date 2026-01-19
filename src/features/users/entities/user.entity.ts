@@ -36,6 +36,9 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   passwordResetExpired: Date | null;
 
+  @Column({ default: false })
+  inTeam: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

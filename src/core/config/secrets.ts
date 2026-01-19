@@ -60,7 +60,7 @@ export const secrets = {
     port: getEnvNumber('DB_PORT', 5432),
     username: getEnv('DB_USERNAME', 'postgres'),
     password: getEnv('DB_PASSWORD', 'postgres'),
-    database: getEnv('DB_DATABASE', 'nestjs_db'),
+    database: getEnv('DB_DATABASE', 'together'),
   },
 
   // Google OAuth
