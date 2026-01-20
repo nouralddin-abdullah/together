@@ -12,49 +12,49 @@ import { PrivacyTeam } from '../../shared/types/privacy-team.enum';
 import { TeamStatus } from '../../shared/types/team-status.enum';
 
 const teamNames = [
-  'Early Risers Club',
-  'Fitness Warriors',
-  'Code Masters',
-  'Book Worms United',
-  'Meditation Squad',
-  'Running Crew',
-  'Study Buddies',
-  'Gym Rats',
-  'Prayer Circle',
-  'Daily Coders',
-  'Health First',
-  'Morning Joggers',
-  'Focus Group',
-  'Healthy Habits',
-  'Scripture Study',
-  'Productivity Pros',
-  'Workout Warriors',
-  'Learning League',
-  'Mindful Mornings',
-  'Active Lifestyle',
+  'نادي البكور', // Early Risers Club - اسم يوحي بالبركة والنشاط المبكر
+  'وحوش اللياقة', // Fitness Warriors - لقب قوي ومحفز للرياضيين
+  'أسياد الكود', // Code Masters - يوحي بالتمكن والاحترافية
+  'عشاق القراءة', // Book Worms United - أفضل من "دودة الكتب"
+  'صفاء الذهن', // Meditation Squad - اسم مريح للنفس
+  'رفقاء الركض', // Running Crew - يوحي بالصحبة والتشجيع
+  'شلة النجاح', // Study Buddies - محفز للدراسة الجماعية
+  'عاشق الحديد', // Gym Rats - المعنى الدارج لمحبي الجيم بدلاً من الترجمة الحرفية
+  'صحبة الخير', // Prayer Circle - اسم دافئ للمجموعات الدينية
+  'تحدي البرمجة', // Daily Coders - اسم حركي وعملي
+  'صحتك بالدنيا', // Health First - شعار معروف ومحبوب
+  'نشاط الصباح', // Morning Joggers
+  'قمة التركيز', // Focus Group - يوحي بالجدية والانجاز
+  'حياة متوازنة', // Healthy Habits
+  'أهل القرآن', // Scripture Study - الوصف الأقرب والأكثر وقاراً في ثقافتنا
+  'صنّاع الأثر', // Productivity Pros - اسم فخم للمنجزين
+  'تحدي المقاومة', // Workout Warriors
+  'نهم المعرفة', // Learning League - يوحي بالرغبة المستمرة في التعلم
+  'صباح التفاؤل', // Mindful Mornings
+  'الحركة بركة', // Active Lifestyle - مثل عربي أصيل ومحفز
 ];
 
 const habitNames = [
-  'Wake up at 5 AM',
-  'Workout for 30 mins',
-  'Code for 1 hour',
-  'Read 20 pages',
-  'Meditate for 15 mins',
-  'Run 5 km',
-  'Study for 2 hours',
-  'Hit the gym',
-  'Morning prayer',
-  'Solve 2 coding problems',
-  'Drink 8 glasses of water',
-  'Jog for 30 mins',
-  'No phone for 1 hour',
-  'Eat healthy meals',
-  'Read scripture daily',
-  'Complete 3 tasks',
-  'Strength training',
-  'Learn something new',
-  'Practice gratitude',
-  'Walk 10,000 steps',
+  'الاستيقاظ ٥ فجراً', // Wake up at 5 AM
+  'تمرين ٣٠ دقيقة', // Workout for 30 mins
+  'ساعة برمجة', // Code for 1 hour
+  'قراءة ٢٠ صفحة', // Read 20 pages
+  'جلسة تأمل ١٥ دقيقة', // Meditate for 15 mins
+  'ركض مسافة ٥ كم', // Run 5 km
+  'مذاكرة ساعتين بتركيز', // Study for 2 hours
+  'تمرين بالجيم', // Hit the gym
+  'الصلاة في وقتها', // Morning prayer (عممتها لتكون أشمل وأقوى)
+  'حل مسألتين برمجة', // Solve 2 coding problems
+  'شرب ٨ أكواب ماء', // Drink 8 glasses of water
+  'هرولة صباحية ٣٠ دقيقة', // Jog for 30 mins
+  'ساعة بدون هاتف', // No phone for 1 hour
+  'أكل صحي ونظيف', // Eat healthy meals
+  'قراءة الورد اليومي', // Read scripture daily
+  'إنجاز ٣ مهام أساسية', // Complete 3 tasks
+  'تمارين تقوية عضلات', // Strength training
+  'تعلم معلومة جديدة', // Learn something new
+  'جلسة حمد وامتنان', // Practice gratitude
+  'مشي ١٠,٠٠٠ خطوة', // Walk 10,000 steps
 ];
 
 const categories: TeamCategory[] = [
