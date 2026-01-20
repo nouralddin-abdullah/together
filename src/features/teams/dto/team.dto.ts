@@ -20,6 +20,12 @@ export class TeamDto {
   rules: string;
 
   @Expose()
+  allowAnonymousFail: boolean;
+
+  @Expose()
+  privacy: boolean;
+
+  @Expose()
   habitName: string;
 
   @Expose()
