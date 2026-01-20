@@ -5,3 +5,4 @@ export * from './streak-durations.enum';
 export * from './habit-type.enum';
 export * from './privacy-team.enum';
 export * from './team-category.enum';
+export * from './join-request-status.enum';

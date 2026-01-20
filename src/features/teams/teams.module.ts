@@ -12,9 +12,10 @@ import { Team } from './entities/team.entity';
 
 // Other feature modules
 import { UsersModule } from '../users/users.module';
+import { JoinRequest } from './entities';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Team]), UsersModule],
+  imports: [TypeOrmModule.forFeature([Team, JoinRequest]), UsersModule],
   controllers: [TeamsController],
   providers: [TeamsService],
   exports: [TeamsService],

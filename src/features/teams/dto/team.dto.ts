@@ -1,15 +1,16 @@
 import { Expose } from 'class-transformer';
-import { TeamStatus } from '@shared/types';
+import { TeamCategory, TeamStatus } from '@shared/types';
 
 export class TeamDto {
   @Expose()
   id: string;
 
   @Expose()
-  name: string;
+  teamName: string;
 
   @Expose()
   ownerId: string;
+
   @Expose()
   description: string;
 
@@ -35,6 +36,9 @@ export class TeamDto {
   maxMembers: number;
 
   @Expose()
+  teamCategory: TeamCategory;
+
+  @Expose()
   teamMembersCount: number;
 
   @Expose()
@@ -47,5 +51,14 @@ export class TeamDto {
   topTeamStreak: number;
 
   @Expose()
+  wantedTeamStreak: number;
+
+  @Expose()
   createdAt: Date;
+}
+
+// Extended DTO for discover endpoint with user-specific fields
+export class DiscoverTeamDto extends TeamDto {
+  @Expose()
+  hasRequested: boolean;
 }

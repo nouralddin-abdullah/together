@@ -43,6 +43,7 @@ export class Team {
     default: PrivacyTeam.PUBLIC,
   })
   privacy: PrivacyTeam;
+
   @Column()
   habitName: string;
 
@@ -54,6 +55,7 @@ export class Team {
 
   @Column({ default: true })
   allowAnonymousFail: boolean;
+
   @Column({ nullable: true })
   rules: string;
 
@@ -65,8 +67,8 @@ export class Team {
   status: TeamStatus;
 
   @Index({ unique: true }) // Unique index for invite code lookups
-  @Column({ nullable: true })
-  inviteCode: string;
+  @Column({ type: 'varchar', nullable: true })
+  inviteCode: string | null;
 
   @Column({ default: 0 })
   currentTeamStreak: number;

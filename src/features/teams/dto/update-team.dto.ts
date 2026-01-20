@@ -23,7 +23,7 @@ const updateTeamSchema = z
       .min(3, 'Habit must be at least 3 characters')
       .max(40, 'Habit must be at most 100 characters'),
     habitType: z.enum(HabitType),
-    privacyType: z.enum(PrivacyTeam),
+    privacy: z.enum(PrivacyTeam),
   })
   .partial();
 
