@@ -218,10 +218,15 @@ export class HabitsService {
       throw new BadRequestException('No active attempt found');
     }
 
-    const daysReached = team.currentTeamStreak;
-    const attemptEnded = currentAttempt.attemptNumber;
+    // Check if someone already slipped today (attempt started today = already reset)
+    const today = new Date().toISOString().split('T')[0];
+    const attemptStartDate = currentAttempt.startedAt
+      .toISOString()
+      .split('T')[0];
+    const alreadyResetToday =
+      attemptStartDate === today && team.currentTeamStreak === 0;
 
-    // Create slip report
+    // Create slip report (always record the slip)
     await this.teamAttemptService.createSlipReport(
       team.id,
       userId,
@@ -229,6 +234,49 @@ export class HabitsService {
       dto.anonymous,
       dto.note,
     );
+
+    // If already reset today, just record the slip and send a message
+    if (alreadyResetToday) {
+      const chatContent = dto.anonymous
+        ? 'أحد الأعضاء أيضاً انتكس اليوم.'
+        : `${user.nickName} أيضاً انتكس اليوم.`;
+
+      await this.chatService.createSystemMessage(
+        team.id,
+        SystemMessageType.STREAK_FAILED,
+        chatContent,
+        dto.anonymous ? undefined : userId,
+        {
+          anonymous: dto.anonymous,
+          attemptNumber: currentAttempt.attemptNumber,
+          additionalSlip: true, // Mark as additional slip
+        },
+      );
+
+      // Emit WebSocket event
+      this.chatGateway.emitHabitSlip(team.id, {
+        anonymous: dto.anonymous,
+        nickName: dto.anonymous ? undefined : user.nickName,
+        attemptNumber: currentAttempt.attemptNumber,
+        daysReached: 0,
+        newAttemptNumber: currentAttempt.attemptNumber, // Same attempt continues
+      });
+
+      return {
+        message: 'شكراً على صدقك. التحدي بدأ من جديد اليوم بالفعل.',
+        data: {
+          attemptEnded: currentAttempt.attemptNumber,
+          daysReached: 0,
+          newAttemptNumber: currentAttempt.attemptNumber,
+          wasAnonymous: dto.anonymous,
+          alreadyResetToday: true,
+        },
+      };
+    }
+
+    // First slip of the day - full reset flow
+    const daysReached = team.currentTeamStreak;
+    const attemptEnded = currentAttempt.attemptNumber;
 
     // End current attempt
     await this.teamAttemptService.endAttempt(

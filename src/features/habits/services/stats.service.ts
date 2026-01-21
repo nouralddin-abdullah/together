@@ -78,25 +78,45 @@ export class StatsService {
 
     // Today's status
     const today = new Date().toISOString().split('T')[0];
-    const todayProgress = await this.teamAttemptService.getDailyProgress(
-      team.id,
-      today,
-    );
 
-    const todayMembers: TodayMemberDto[] = members.map((m) => {
-      const progress = todayProgress.find((p) => p.userId === m.id);
-      return {
+    // For QUIT habits, everyone is "clean" by default (no daily check-in needed)
+    // For BUILD habits, check DailyProgress records
+    let todayMembers: TodayMemberDto[];
+    let completedCount: number;
+
+    if (team.habitType === HabitType.QUITE) {
+      // QUIT habits: everyone is "completed" (clean) by default
+      todayMembers = members.map((m) => ({
         userId: m.id,
         nickName: m.nickName,
         avatar: m.avatar || null,
-        completed: progress?.completed ?? false,
-        completedAt: progress?.completedAt?.toISOString() ?? null,
-        proofUrl: progress?.proofUrl ?? null,
-        proofType: progress?.proofType ?? null,
-      };
-    });
+        completed: true, // In QUIT, no daily action = staying clean
+        completedAt: null,
+        proofUrl: null,
+        proofType: null,
+      }));
+      completedCount = members.length;
+    } else {
+      // BUILD habits: check DailyProgress
+      const todayProgress = await this.teamAttemptService.getDailyProgress(
+        team.id,
+        today,
+      );
 
-    const completedCount = todayMembers.filter((m) => m.completed).length;
+      todayMembers = members.map((m) => {
+        const progress = todayProgress.find((p) => p.userId === m.id);
+        return {
+          userId: m.id,
+          nickName: m.nickName,
+          avatar: m.avatar || null,
+          completed: progress?.completed ?? false,
+          completedAt: progress?.completedAt?.toISOString() ?? null,
+          proofUrl: progress?.proofUrl ?? null,
+          proofType: progress?.proofType ?? null,
+        };
+      });
+      completedCount = todayMembers.filter((m) => m.completed).length;
+    }
 
     // Attempt history
     const attemptHistory: AttemptHistoryDto[] = attempts.map((a) => {

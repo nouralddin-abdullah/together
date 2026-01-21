@@ -14,12 +14,14 @@ import { Team } from './entities/team.entity';
 import { UsersModule } from '../users/users.module';
 import { JoinRequest } from './entities';
 import { TeamAttemptModule } from '../teamAttempt/teams/team-attempt.module';
+import { ChatModule } from '../chat/chat.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Team, JoinRequest]),
     UsersModule,
     forwardRef(() => TeamAttemptModule),
+    forwardRef(() => ChatModule),
   ],
   controllers: [TeamsController],
   providers: [TeamsService],

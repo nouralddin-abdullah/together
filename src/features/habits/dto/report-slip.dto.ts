@@ -22,4 +22,6 @@ export interface ReportSlipResponse {
   daysReached: number;
   newAttemptNumber: number;
   wasAnonymous: boolean;
+  // True if this was an additional slip after someone already reset the streak today
+  alreadyResetToday?: boolean;
 }

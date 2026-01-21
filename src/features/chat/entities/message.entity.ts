@@ -24,6 +24,7 @@ export enum MessageType {
  * System message subtypes for different notifications
  */
 export enum SystemMessageType {
+  CHALLENGE_STARTED = 'challenge_started', // Challenge has begun!
   STREAK_COMPLETED = 'streak_completed', // User completed their daily goal
   STREAK_FAILED = 'streak_failed', // User failed and streak resets
   STREAK_MILESTONE = 'streak_milestone', // User reached a milestone (7 days, 30 days, etc.)

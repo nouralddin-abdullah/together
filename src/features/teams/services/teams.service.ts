@@ -18,6 +18,8 @@ import { CreateTeamDto } from '../dto/create-team.dto';
 import { DiscoverQuery } from '../dto/discover-query.dto';
 import { User } from '../../users/entities/user.entity';
 import { TeamAttemptService } from '../../teamAttempt/teams/services/team-attempt.service';
+import { ChatService } from '../../chat/services/chat.service';
+import { SystemMessageType } from '../../chat/entities/message.entity';
 
 // Shared imports
 import { PaginatedResponse, createPaginatedResponse } from '@shared/dto';
@@ -39,6 +41,8 @@ export class TeamsService {
     private joinRequestsRepo: Repository<JoinRequest>,
     @Inject(forwardRef(() => TeamAttemptService))
     private teamAttemptService: TeamAttemptService,
+    @Inject(forwardRef(() => ChatService))
+    private chatService: ChatService,
   ) {}
 
   // create a new team
@@ -487,11 +491,26 @@ export class TeamsService {
         );
       }
 
+      // Create system message for challenge start
+      const startMessage =
+        'بدأ التحدي! 🚀 خليكم فاكرين حاجة مهمة: كلها بتبدأ والطريق للكل، يا هتجيب ورا وتنام ف نص الطريق زي غيرك كتير.. يا تكون قدها انت وفريقك. 💪';
+      await this.chatService.createSystemMessage(
+        team.id,
+        SystemMessageType.CHALLENGE_STARTED,
+        startMessage,
+        ownerId,
+        {
+          goal: team.wantedTeamStreak,
+          habitType: team.habitType,
+          habitName: team.habitName,
+          memberCount: team.teamMembersCount,
+        },
+      );
+
       return {
         team: { ...team, status: TeamStatus.ACTIVE },
         attempt,
-        message:
-          'بدا التحدي, خليكم فاكرين حاجة مهمه: كلها بتبدا والطريق للكل, ياهتجيب ورا وتنام فنص الطريق زي غيرك كتير.. ياتكون قدها انت وفريقك.',
+        message: startMessage,
       };
     });
   }
