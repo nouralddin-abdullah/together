@@ -15,6 +15,7 @@ import { RolesGuard } from './core/guards/roles.guard';
 import { UsersModule } from './features/users/users.module';
 import { HealthModule } from './features/health/health.module';
 import { TeamsModule } from './features/teams/teams.module';
+import { ChatModule } from './features/chat/chat.module';
 import { StorageModule, StorageProviderType } from './features/storage';
 import { MailModule, MailProviderType } from './features/mail';
 
@@ -163,6 +164,9 @@ import { AppService } from './app.service';
     UsersModule,
     HealthModule,
     TeamsModule,
+
+    // Real-time team chat with WebSocket
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [

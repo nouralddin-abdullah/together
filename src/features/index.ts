@@ -7,3 +7,4 @@ export * from './health';
 export * from './mail';
 export * from './storage';
 export * from './teams';
+export * from './chat';

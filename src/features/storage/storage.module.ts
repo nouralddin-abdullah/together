@@ -12,6 +12,7 @@ import {
 import { IStorageProvider } from './interfaces/storage-provider.interface';
 import { S3Provider } from './providers/s3.provider';
 import { R2Provider } from './providers/r2.provider';
+import { StorageController } from './controllers/storage.controller';
 
 /**
  * Storage feature module
@@ -68,8 +69,9 @@ export class StorageModule {
     return {
       module: StorageModule,
       global: isGlobal,
+      controllers: [StorageController],
       providers: [configProvider, storageProvider, StorageService],
-      exports: [StorageService, STORAGE_PROVIDER],
+      exports: [StorageService, STORAGE_PROVIDER, STORAGE_CONFIG],
     };
   }
 
@@ -97,8 +99,9 @@ export class StorageModule {
       module: StorageModule,
       global: options.isGlobal ?? false,
       imports: options.imports || [],
+      controllers: [StorageController],
       providers: [configProvider, storageProvider, StorageService],
-      exports: [StorageService, STORAGE_PROVIDER],
+      exports: [StorageService, STORAGE_PROVIDER, STORAGE_CONFIG],
     };
   }
 
