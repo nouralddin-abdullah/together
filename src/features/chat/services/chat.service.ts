@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -47,6 +49,7 @@ export class ChatService {
     @InjectRepository(MessageAttachment)
     private attachmentRepo: Repository<MessageAttachment>,
 
+    @Inject(forwardRef(() => TeamsService))
     private teamsService: TeamsService,
     private usersService: UsersService,
   ) {}
