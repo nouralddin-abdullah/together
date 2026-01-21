@@ -7,8 +7,8 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-import { Team } from '../../teams/entities/team.entity';
-import { User } from '../../users/entities/user.entity';
+import { Team } from '../../../teams/entities/team.entity';
+import { User } from '../../../users/entities/user.entity';
 import { TeamAttempt } from './team-attempt.entity';
 
 /**

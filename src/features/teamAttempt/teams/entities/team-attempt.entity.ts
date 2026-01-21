@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-import { Team } from '../../teams/entities/team.entity';
+import { Team } from '../../../teams/entities/team.entity';
 import { AttemptEndReason } from '@shared/types';
 
 @Entity()
