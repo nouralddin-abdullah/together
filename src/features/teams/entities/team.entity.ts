@@ -56,6 +56,10 @@ export class Team {
   @Column({ default: true })
   allowAnonymousFail: boolean;
 
+  // Require photo/video proof for BUILD habit check-ins
+  @Column({ default: false })
+  requireProof: boolean;
+
   @Column({ nullable: true })
   rules: string;
 

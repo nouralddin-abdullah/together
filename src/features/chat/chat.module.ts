@@ -60,6 +60,6 @@ import { UsersModule } from '../users/users.module';
     // WebSocket Gateway
     ChatGateway,
   ],
-  exports: [ChatService],
+  exports: [ChatService, ChatGateway],
 })
 export class ChatModule {}

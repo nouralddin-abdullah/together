@@ -73,6 +73,11 @@ export class UsersService {
     return await this.userRepo.findOneBy({ id });
   }
 
+  // find all users by team ID
+  async findByTeamId(teamId: string): Promise<User[]> {
+    return await this.userRepo.findBy({ teamId });
+  }
+
   // find user by email - to lower case so not case sensitive
   async findOneByEmail(email: string): Promise<User | null> {
     return await this.userRepo.findOneBy({ email: email.toLowerCase() });

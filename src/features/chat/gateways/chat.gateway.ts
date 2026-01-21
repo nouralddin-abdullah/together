@@ -260,4 +260,90 @@ export class ChatGateway
     if (!user) throw new WsException('Not authenticated');
     return user;
   }
+
+  // ─── Habit Event Emitters ──────────────────────────────────────────────────
+
+  /**
+   * Emit habit check-in event to team room
+   */
+  emitHabitCheckIn(
+    teamId: string,
+    data: { userId: string; nickName: string; day: number },
+  ): void {
+    const roomName = `team:${teamId}`;
+    this.server.to(roomName).emit('habit:checkin', data);
+    this.logger.debug(`Emitted habit:checkin to ${roomName}`);
+  }
+
+  /**
+   * Emit all members completed event to team room
+   */
+  emitAllComplete(
+    teamId: string,
+    data: { day: number; memberCount: number },
+  ): void {
+    const roomName = `team:${teamId}`;
+    this.server.to(roomName).emit('habit:allComplete', data);
+    this.logger.debug(`Emitted habit:allComplete to ${roomName}`);
+  }
+
+  /**
+   * Emit slip report event to team room (for QUIT habits)
+   */
+  emitHabitSlip(
+    teamId: string,
+    data: {
+      anonymous: boolean;
+      nickName?: string;
+      attemptNumber: number;
+      daysReached: number;
+      newAttemptNumber: number;
+    },
+  ): void {
+    const roomName = `team:${teamId}`;
+    this.server.to(roomName).emit('habit:slip', data);
+    this.logger.debug(`Emitted habit:slip to ${roomName}`);
+  }
+
+  /**
+   * Emit streak reset event (from CRON job when someone misses)
+   */
+  emitStreakReset(
+    teamId: string,
+    data: {
+      reason: 'missed' | 'slip';
+      attemptNumber: number;
+      daysReached: number;
+      newAttemptNumber: number;
+      missedUserIds?: string[];
+    },
+  ): void {
+    const roomName = `team:${teamId}`;
+    this.server.to(roomName).emit('habit:reset', data);
+    this.logger.debug(`Emitted habit:reset to ${roomName}`);
+  }
+
+  /**
+   * Emit milestone reached event
+   */
+  emitMilestone(
+    teamId: string,
+    data: { day: number; goal: number; message: string },
+  ): void {
+    const roomName = `team:${teamId}`;
+    this.server.to(roomName).emit('habit:milestone', data);
+    this.logger.debug(`Emitted habit:milestone to ${roomName}`);
+  }
+
+  /**
+   * Emit challenge completed event
+   */
+  emitChallengeCompleted(
+    teamId: string,
+    data: { totalDays: number; totalAttempts: number },
+  ): void {
+    const roomName = `team:${teamId}`;
+    this.server.to(roomName).emit('habit:completed', data);
+    this.logger.debug(`Emitted habit:completed to ${roomName}`);
+  }
 }

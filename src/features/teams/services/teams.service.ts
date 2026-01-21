@@ -5,6 +5,8 @@ import {
   BadRequestException,
   UnauthorizedException,
   NotAcceptableException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -15,10 +17,16 @@ import { Team } from '../entities/team.entity';
 import { CreateTeamDto } from '../dto/create-team.dto';
 import { DiscoverQuery } from '../dto/discover-query.dto';
 import { User } from '../../users/entities/user.entity';
+import { TeamAttemptService } from '../../teamAttempt/teams/services/team-attempt.service';
 
 // Shared imports
 import { PaginatedResponse, createPaginatedResponse } from '@shared/dto';
-import { JoinRequestStatus, PrivacyTeam, TeamStatus } from '@shared/types';
+import {
+  JoinRequestStatus,
+  PrivacyTeam,
+  TeamStatus,
+  HabitType,
+} from '@shared/types';
 import { UsersService } from '@features/users';
 import { JoinRequest } from '../entities';
 
@@ -29,6 +37,8 @@ export class TeamsService {
     private userServices: UsersService,
     @InjectRepository(JoinRequest)
     private joinRequestsRepo: Repository<JoinRequest>,
+    @Inject(forwardRef(() => TeamAttemptService))
+    private teamAttemptService: TeamAttemptService,
   ) {}
 
   // create a new team
@@ -253,6 +263,12 @@ export class TeamsService {
       throw new NotFoundException('Team not found');
     }
 
+    if (team.status !== TeamStatus.PENDING) {
+      throw new NotAcceptableException(
+        'Cannot accept new members after the challenge has started!',
+      );
+    }
+
     if (team.ownerId !== ownerId) {
       throw new UnauthorizedException('You are not the owner!');
     }
@@ -410,6 +426,128 @@ export class TeamsService {
       await manager.delete(Team, { id: team.id });
 
       return { message: 'Team disbanded successfully' };
+    });
+  }
+
+  /**
+   * Start the challenge - transitions team from PENDING to ACTIVE
+   * Creates the first TeamAttempt and locks down the team
+   */
+  async startChallenge(ownerId: string) {
+    const owner = await this.userServices.findOne(ownerId);
+    if (!owner) {
+      throw new NotFoundException('User not found');
+    }
+    if (!owner.teamId) {
+      throw new NotFoundException('You are not in a team');
+    }
+
+    const team = await this.teamRepo.findOneBy({ id: owner.teamId });
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+
+    if (team.ownerId !== ownerId) {
+      throw new UnauthorizedException(
+        'Only the team owner can start the challenge',
+      );
+    }
+
+    if (team.status !== TeamStatus.PENDING) {
+      throw new BadRequestException('Challenge has already started');
+    }
+
+    // Minimum 2 members required
+    if (team.teamMembersCount < 2) {
+      throw new BadRequestException(
+        'At least 2 members are required to start the challenge',
+      );
+    }
+
+    // Start the challenge
+    return this.teamRepo.manager.transaction(async (manager) => {
+      // Update team status to ACTIVE
+      await manager.update(Team, team.id, {
+        status: TeamStatus.ACTIVE,
+        currentTeamStreak: 0,
+      });
+
+      // Create first attempt
+      const attempt = await this.teamAttemptService.createAttempt(team.id, 1);
+
+      // For BUILD habits, create today's empty progress for all members
+      if (team.habitType === HabitType.BUILD) {
+        const members = await this.userServices.findByTeamId(team.id);
+        const today = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
+        await this.teamAttemptService.createDailyProgressForMembers(
+          team.id,
+          attempt.id,
+          members.map((m) => m.id),
+          today,
+        );
+      }
+
+      return {
+        team: { ...team, status: TeamStatus.ACTIVE },
+        attempt,
+        message:
+          'بدا التحدي, خليكم فاكرين حاجة مهمه: كلها بتبدا والطريق للكل, ياهتجيب ورا وتنام فنص الطريق زي غيرك كتير.. ياتكون قدها انت وفريقك.',
+      };
+    });
+  }
+
+  /**
+   * Update team streak value
+   * Used by HabitsService when slip happens or CRON job updates
+   */
+  async updateTeamStreak(
+    teamId: string,
+    newStreak: number,
+    updateTopStreak = true,
+  ): Promise<void> {
+    const team = await this.teamRepo.findOneBy({ id: teamId });
+    if (!team) {
+      throw new NotFoundException('Team not found');
+    }
+
+    const updates: Partial<Team> = {
+      currentTeamStreak: newStreak,
+    };
+
+    // Update top streak if new streak is higher
+    if (updateTopStreak && newStreak > team.topTeamStreak) {
+      updates.topTeamStreak = newStreak;
+    }
+
+    await this.teamRepo.update(teamId, updates);
+  }
+
+  /**
+   * Get team by ID (for internal use)
+   */
+  async findById(teamId: string): Promise<Team | null> {
+    return this.teamRepo.findOneBy({ id: teamId });
+  }
+
+  /**
+   * Find all active teams with a specific habit type
+   * Used by CRON job to process daily habit checks
+   */
+  async findActiveTeamsByHabitType(habitType: HabitType): Promise<Team[]> {
+    return this.teamRepo.find({
+      where: {
+        status: TeamStatus.ACTIVE,
+        habitType,
+      },
+    });
+  }
+
+  /**
+   * Mark team as completed (goal achieved!)
+   */
+  async completeTeam(teamId: string): Promise<void> {
+    await this.teamRepo.update(teamId, {
+      status: TeamStatus.COMPLETED,
     });
   }
 }

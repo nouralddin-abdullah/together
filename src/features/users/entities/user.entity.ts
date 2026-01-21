@@ -49,6 +49,10 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   passwordResetExpired: Date | null;
 
+  // Track last check-in date for BUILD habits (helps quickly check if user did today)
+  @Column({ type: 'date', nullable: true })
+  lastCheckInDate: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

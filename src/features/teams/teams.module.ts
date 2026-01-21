@@ -13,9 +13,14 @@ import { Team } from './entities/team.entity';
 // Other feature modules
 import { UsersModule } from '../users/users.module';
 import { JoinRequest } from './entities';
+import { TeamAttemptModule } from '../teamAttempt/teams/team-attempt.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Team, JoinRequest]), UsersModule],
+  imports: [
+    TypeOrmModule.forFeature([Team, JoinRequest]),
+    UsersModule,
+    forwardRef(() => TeamAttemptModule),
+  ],
   controllers: [TeamsController],
   providers: [TeamsService],
   exports: [TeamsService],

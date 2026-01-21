@@ -29,7 +29,8 @@ export enum SystemMessageType {
   STREAK_MILESTONE = 'streak_milestone', // User reached a milestone (7 days, 30 days, etc.)
   USER_JOINED = 'user_joined', // New member joined the team
   USER_LEFT = 'user_left', // Member left the team
-  TEAM_GOAL_REACHED = 'team_goal_reached', // Team reached their goal
+  TEAM_GOAL_REACHED = 'team_goal_reached', // Team reached their goal (legacy)
+  CHALLENGE_COMPLETED = 'challenge_completed', // Team completed the entire challenge!
 }
 
 @Entity('messages')

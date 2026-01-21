@@ -16,6 +16,7 @@ import { UsersModule } from './features/users/users.module';
 import { HealthModule } from './features/health/health.module';
 import { TeamsModule } from './features/teams/teams.module';
 import { ChatModule } from './features/chat/chat.module';
+import { HabitsModule } from './features/habits/habits.module';
 import { StorageModule, StorageProviderType } from './features/storage';
 import { MailModule, MailProviderType } from './features/mail';
 
@@ -167,6 +168,9 @@ import { AppService } from './app.service';
 
     // Real-time team chat with WebSocket
     ChatModule,
+
+    // Habit tracking - check-ins, slips, progress
+    HabitsModule,
   ],
   controllers: [AppController],
   providers: [

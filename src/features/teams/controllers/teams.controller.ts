@@ -200,4 +200,20 @@ export class TeamsController {
       message: result.message,
     };
   }
+
+  @Post('/start')
+  @ApiOperation({
+    summary: 'Start the challenge (owner only) - LOCKDOWN begins',
+  })
+  async startChallenge(@CurrentUser() user: AuthenticatedUser) {
+    const result = await this.teamsService.startChallenge(user.userId);
+    return {
+      success: true,
+      message: result.message,
+      item: {
+        team: result.team,
+        attempt: result.attempt,
+      },
+    };
+  }
 }

@@ -26,7 +26,7 @@ import { SendGridProvider } from './providers/sendgrid.provider';
 import { ResendProvider } from './providers/resend.provider';
 
 // Core imports
-import { secrets } from '@core/config';
+import { secrets, BullConfigModule } from '@core/index';
 
 @Module({})
 export class MailModule {
@@ -68,21 +68,12 @@ export class MailModule {
     const providers: Provider[] = [configProvider, mailProvider, MailService];
 
     if (queueEnabled) {
-      // Add BullMQ with Redis when queue is enabled
-      const redisConfig = secrets.redis;
-      this.logger.log(
-        `Connecting to Redis at ${redisConfig.host}:${redisConfig.port}`,
-      );
+      // Add BullMQ when queue is enabled
+      // BullConfigModule provides the global Redis connection
+      this.logger.log('Queue enabled - registering MAIL_QUEUE');
 
       imports.push(
-        BullModule.forRoot({
-          connection: {
-            host: redisConfig.host,
-            port: redisConfig.port,
-            username: redisConfig.username,
-            password: redisConfig.password || undefined,
-          },
-        }),
+        BullConfigModule.forRoot(),
         BullModule.registerQueue({
           name: MAIL_QUEUE,
         }),

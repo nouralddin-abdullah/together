@@ -15,3 +15,6 @@ export * from './interceptors';
 
 // Decorators
 export * from './decorators';
+
+// Queue (BullMQ)
+export * from './queue';
