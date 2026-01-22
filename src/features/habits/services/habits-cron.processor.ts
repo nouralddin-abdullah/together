@@ -27,15 +27,28 @@ interface MidnightBuildCheckPayload {
   checkDate?: string;
 }
 
+interface MidnightQuitCheckPayload {
+  // Date to check (YYYY-MM-DD format) - usually yesterday
+  // If not provided, will calculate yesterday's date
+  checkDate?: string;
+}
+
 /**
  * Habits CRON Queue Processor
  * Handles scheduled jobs for habit tracking
  *
- * Main job: MIDNIGHT_BUILD_CHECK
- * - Runs at 00:05 UTC daily
- * - Checks all ACTIVE BUILD teams
- * - If all members completed: increment streak, check goal
- * - If someone missed: end attempt, reset streak, start new attempt
+ * Jobs:
+ * 1. MIDNIGHT_BUILD_CHECK
+ *    - Runs at 00:05 UTC daily
+ *    - Checks all ACTIVE BUILD teams
+ *    - If all members completed: increment streak, check goal
+ *    - If someone missed: end attempt, reset streak, start new attempt
+ *
+ * 2. MIDNIGHT_QUIT_CHECK
+ *    - Runs at 00:05 UTC daily
+ *    - Checks all ACTIVE QUIT teams
+ *    - If no one slipped: increment streak, check goal
+ *    - (Slips are handled in real-time by reportSlip)
  */
 @Processor(HABITS_CRON_QUEUE)
 export class HabitsCronProcessor extends WorkerHost {
@@ -63,13 +76,24 @@ export class HabitsCronProcessor extends WorkerHost {
   }
 
   async process(
-    job: Job<MidnightBuildCheckPayload, void, HabitsCronJobName>,
+    job: Job<
+      MidnightBuildCheckPayload | MidnightQuitCheckPayload,
+      void,
+      HabitsCronJobName
+    >,
   ): Promise<void> {
     this.logger.log(`Processing job ${job.id}: ${job.name}`);
 
     switch (job.name) {
       case HabitsCronJobName.MIDNIGHT_BUILD_CHECK:
-        await this.handleMidnightBuildCheck(job);
+        await this.handleMidnightBuildCheck(
+          job as Job<MidnightBuildCheckPayload>,
+        );
+        break;
+      case HabitsCronJobName.MIDNIGHT_QUIT_CHECK:
+        await this.handleMidnightQuitCheck(
+          job as Job<MidnightQuitCheckPayload>,
+        );
         break;
       default:
         this.logger.warn(`Unknown job name: ${job.name}`);
@@ -308,5 +332,165 @@ export class HabitsCronProcessor extends WorkerHost {
       newAttemptNumber: newAttempt.attemptNumber,
       missedUserIds: missedMembers.map((m) => m.id),
     });
+  }
+
+  // ============================================================
+  // QUIT HABIT PROCESSING
+  // ============================================================
+
+  /**
+   * Handle midnight QUIT habit check
+   * For each ACTIVE QUIT team, check if the day passed without any slips
+   * If no slips: increment streak
+   * If slips occurred: streak was already reset in real-time by reportSlip
+   */
+  private async handleMidnightQuitCheck(
+    job: Job<MidnightQuitCheckPayload>,
+  ): Promise<void> {
+    const checkDate = job.data.checkDate || this.getYesterdayDate();
+    this.logger.log(`Running midnight QUIT check for date: ${checkDate}`);
+
+    // Get all active QUIT teams
+    const activeTeams = await this.teamsService.findActiveTeamsByHabitType(
+      HabitType.QUITE, // Note: enum value is 'quite' (lowercase)
+    );
+
+    this.logger.log(`Found ${activeTeams.length} active QUIT teams to process`);
+
+    // Process each team
+    for (const team of activeTeams) {
+      try {
+        await this.processTeamQuitCheck(team.id, checkDate);
+      } catch (error) {
+        this.logger.error(
+          `Error processing QUIT team ${team.id}: ${error.message}`,
+          error.stack,
+        );
+        // Continue with other teams even if one fails
+      }
+    }
+
+    this.logger.log(`Completed midnight QUIT check for date: ${checkDate}`);
+  }
+
+  /**
+   * Process a single team's QUIT habit check
+   * If no one slipped yesterday, increment the streak
+   */
+  private async processTeamQuitCheck(
+    teamId: string,
+    checkDate: string,
+  ): Promise<void> {
+    // Get team details
+    const team = await this.teamsService.findById(teamId);
+    if (!team || team.status !== TeamStatus.ACTIVE) {
+      this.logger.debug(`QUIT Team ${teamId} is no longer active, skipping`);
+      return;
+    }
+
+    // Get current attempt
+    const currentAttempt =
+      await this.teamAttemptService.getCurrentAttempt(teamId);
+    if (!currentAttempt) {
+      this.logger.warn(`QUIT Team ${teamId} has no active attempt, skipping`);
+      return;
+    }
+
+    // Check if the attempt started on or before the check date
+    // If attempt started after checkDate, skip (new attempt after a slip)
+    const attemptStartDate = currentAttempt.startedAt
+      .toISOString()
+      .split('T')[0];
+    if (attemptStartDate > checkDate) {
+      this.logger.debug(
+        `QUIT Team ${teamId}: Attempt started on ${attemptStartDate}, after check date ${checkDate}. Skipping.`,
+      );
+      return;
+    }
+
+    // Check if anyone slipped on the check date
+    const hadSlips = await this.teamAttemptService.hasSlipsOnDate(
+      teamId,
+      checkDate,
+    );
+
+    if (hadSlips) {
+      // Slips already handled in real-time by reportSlip
+      // Streak was already reset, new attempt was already created
+      this.logger.debug(
+        `QUIT Team ${teamId}: Slips occurred on ${checkDate}, already handled`,
+      );
+      return;
+    }
+
+    // No slips! Day was clean - increment streak
+    await this.handleQuitDayClean(team, currentAttempt);
+  }
+
+  /**
+   * Handle when a QUIT team had a clean day (no slips)
+   */
+  private async handleQuitDayClean(
+    team: { id: string; currentTeamStreak: number; wantedTeamStreak: number },
+    currentAttempt: { id: string; attemptNumber: number },
+  ): Promise<void> {
+    const newStreak = team.currentTeamStreak + 1;
+    this.logger.log(
+      `QUIT Team ${team.id}: Clean day! Streak ${team.currentTeamStreak} -> ${newStreak}`,
+    );
+
+    // Update streak
+    await this.teamsService.updateTeamStreak(team.id, newStreak);
+
+    // Check for milestones (every 5 days)
+    if (newStreak > 0 && newStreak % 5 === 0) {
+      const milestoneMessage = `🔥 ${newStreak} يوم نظيف! استمروا! 💪`;
+      await this.chatService.createSystemMessage(
+        team.id,
+        SystemMessageType.STREAK_MILESTONE,
+        milestoneMessage,
+        undefined,
+        { milestone: newStreak, goal: team.wantedTeamStreak },
+      );
+
+      // Emit WebSocket milestone event
+      this.chatGateway.emitMilestone(team.id, {
+        day: newStreak,
+        goal: team.wantedTeamStreak,
+        message: milestoneMessage,
+      });
+    }
+
+    // Check if goal achieved
+    if (newStreak >= team.wantedTeamStreak) {
+      this.logger.log(
+        `QUIT Team ${team.id}: Goal achieved! ${newStreak} >= ${team.wantedTeamStreak}`,
+      );
+
+      // End attempt as completed
+      await this.teamAttemptService.endAttempt(
+        currentAttempt.id,
+        AttemptEndReason.COMPLETED,
+        newStreak,
+      );
+
+      // Mark team as completed
+      await this.teamsService.completeTeam(team.id);
+
+      // Send congratulations message
+      await this.chatService.createSystemMessage(
+        team.id,
+        SystemMessageType.CHALLENGE_COMPLETED,
+        `🎉🎊 مبرررروك! أكملتم التحدي بنجاح! ${team.wantedTeamStreak} يوم نظيف!`,
+        undefined,
+        { goalReached: team.wantedTeamStreak },
+      );
+
+      // Emit WebSocket challenge completed event
+      this.chatGateway.emitChallengeCompleted(team.id, {
+        totalDays: team.wantedTeamStreak,
+        totalAttempts: currentAttempt.attemptNumber,
+      });
+    }
   }
 }

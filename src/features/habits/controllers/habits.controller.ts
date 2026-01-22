@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Post, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { Body, Controller, Get, Post, Param, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 
 // Core imports
-import { CurrentUser } from '@core/decorators';
+import { CurrentUser, Public } from '@core/decorators';
 
 // Shared imports
 import { type AuthenticatedUser } from '@shared/types';
@@ -10,6 +10,7 @@ import { type AuthenticatedUser } from '@shared/types';
 // Feature imports
 import { HabitsService } from '../services/habits.service';
 import { StatsService } from '../services/stats.service';
+import { HabitsCronService } from '../services/habits-cron.service';
 import { CheckInDto, ReportSlipDto } from '../dto';
 
 @ApiTags('Habits')
@@ -18,6 +19,7 @@ export class HabitsController {
   constructor(
     private readonly habitsService: HabitsService,
     private readonly statsService: StatsService,
+    private readonly habitsCronService: HabitsCronService,
   ) {}
 
   /**
@@ -148,4 +150,58 @@ export class HabitsController {
       data: stats,
     };
   }
+
+  // ─── DEV/TEST ONLY - Comment out before deploying! ─────────────────────────
+  // ┌──────────────────────────────────────────────────────────────────────────┐
+  // │  COMMENT OUT THE SECTION BELOW BEFORE PRODUCTION DEPLOYMENT              │
+  // └──────────────────────────────────────────────────────────────────────────┘
+
+  /**
+   * [DEV ONLY] Manually trigger midnight CRON job
+   * Useful for testing or catching up missed days
+   *
+   * @example POST /habits/trigger-cron?date=2026-01-21
+   */
+  @Post('/trigger-cron')
+  @Public() // No auth needed for dev endpoint
+  @ApiOperation({ summary: '[DEV] Manually trigger midnight CRON jobs' })
+  @ApiQuery({
+    name: 'date',
+    required: false,
+    description: 'Date to check (YYYY-MM-DD), defaults to yesterday',
+  })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    enum: ['build', 'quit', 'all'],
+    description: 'Which CRON to trigger',
+  })
+  async triggerCron(
+    @Query('date') date?: string,
+    @Query('type') type?: 'build' | 'quit' | 'all',
+  ) {
+    const cronType = type || 'all';
+
+    if (cronType === 'build') {
+      await this.habitsCronService.triggerMidnightBuildCheck(date);
+    } else if (cronType === 'quit') {
+      await this.habitsCronService.triggerMidnightQuitCheck(date);
+    } else {
+      await this.habitsCronService.triggerMidnightCheck(date);
+    }
+
+    return {
+      success: true,
+      message: `CRON job(s) triggered for ${date || 'yesterday'}`,
+      data: {
+        type: cronType,
+        date: date || 'yesterday',
+        note: 'Jobs are queued and will process shortly',
+      },
+    };
+  }
+
+  // └──────────────────────────────────────────────────────────────────────────┘
+  // │  END OF DEV SECTION - Comment out above before production                │
+  // ┌──────────────────────────────────────────────────────────────────────────┐
 }

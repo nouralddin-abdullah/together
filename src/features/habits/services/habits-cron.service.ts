@@ -57,6 +57,26 @@ export class HabitsCronService implements OnModuleInit {
     this.logger.log(
       `Scheduled MIDNIGHT_BUILD_CHECK job with cron: ${HABITS_CRON_EXPRESSIONS.MIDNIGHT}`,
     );
+
+    // Add midnight QUIT check job
+    // Runs at 00:05 UTC every day (same time as BUILD)
+    // Increments streak for QUIT teams if no one slipped
+    await this.habitsQueue.add(
+      HabitsCronJobName.MIDNIGHT_QUIT_CHECK,
+      {}, // Empty payload - processor calculates yesterday's date
+      {
+        repeat: {
+          pattern: HABITS_CRON_EXPRESSIONS.MIDNIGHT,
+        },
+        jobId: 'midnight-quit-check-repeatable',
+        removeOnComplete: { count: 100 },
+        removeOnFail: { count: 100 },
+      },
+    );
+
+    this.logger.log(
+      `Scheduled MIDNIGHT_QUIT_CHECK job with cron: ${HABITS_CRON_EXPRESSIONS.MIDNIGHT}`,
+    );
   }
 
   /**
@@ -69,22 +89,54 @@ export class HabitsCronService implements OnModuleInit {
   }
 
   /**
-   * Manually trigger the midnight check for a specific date
+   * Manually trigger the midnight BUILD check for a specific date
    * Useful for testing or catching up on missed jobs
    */
-  async triggerMidnightCheck(checkDate?: string): Promise<void> {
+  async triggerMidnightBuildCheck(checkDate?: string): Promise<void> {
     const date = checkDate || this.getYesterdayDate();
-    this.logger.log(`Manually triggering midnight check for date: ${date}`);
+    this.logger.log(
+      `Manually triggering midnight BUILD check for date: ${date}`,
+    );
 
     await this.habitsQueue.add(
       HabitsCronJobName.MIDNIGHT_BUILD_CHECK,
       { checkDate: date },
       {
-        jobId: `manual-midnight-check-${date}-${Date.now()}`,
+        jobId: `manual-midnight-build-check-${date}-${Date.now()}`,
         removeOnComplete: true,
         removeOnFail: { count: 10 },
       },
     );
+  }
+
+  /**
+   * Manually trigger the midnight QUIT check for a specific date
+   * Useful for testing or catching up on missed jobs
+   */
+  async triggerMidnightQuitCheck(checkDate?: string): Promise<void> {
+    const date = checkDate || this.getYesterdayDate();
+    this.logger.log(
+      `Manually triggering midnight QUIT check for date: ${date}`,
+    );
+
+    await this.habitsQueue.add(
+      HabitsCronJobName.MIDNIGHT_QUIT_CHECK,
+      { checkDate: date },
+      {
+        jobId: `manual-midnight-quit-check-${date}-${Date.now()}`,
+        removeOnComplete: true,
+        removeOnFail: { count: 10 },
+      },
+    );
+  }
+
+  /**
+   * Manually trigger both midnight checks for a specific date
+   * Useful for testing or catching up on missed jobs
+   */
+  async triggerMidnightCheck(checkDate?: string): Promise<void> {
+    await this.triggerMidnightBuildCheck(checkDate);
+    await this.triggerMidnightQuitCheck(checkDate);
   }
 
   /**

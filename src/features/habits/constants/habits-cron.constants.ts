@@ -9,6 +9,8 @@ export const HABITS_CRON_QUEUE = 'habits-cron';
 export enum HabitsCronJobName {
   // Midnight job to process BUILD habits for the previous day
   MIDNIGHT_BUILD_CHECK = 'midnight-build-check',
+  // Midnight job to process QUIT habits for the previous day
+  MIDNIGHT_QUIT_CHECK = 'midnight-quit-check',
 }
 
 // Cron expressions

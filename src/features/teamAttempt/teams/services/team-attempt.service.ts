@@ -179,4 +179,24 @@ export class TeamAttemptService {
       order: { reportedAt: 'DESC' },
     });
   }
+
+  /**
+   * Check if any slips occurred for a team on a specific date
+   * Used by QUIT habit CRON to determine if day was clean
+   */
+  async hasSlipsOnDate(teamId: string, date: string): Promise<boolean> {
+    // Date is in 'YYYY-MM-DD' format
+    // We need to check if any slip's reportedAt falls within that date
+    const startOfDay = new Date(`${date}T00:00:00.000Z`);
+    const endOfDay = new Date(`${date}T23:59:59.999Z`);
+
+    const count = await this.slipReportRepository
+      .createQueryBuilder('slip')
+      .where('slip.teamId = :teamId', { teamId })
+      .andWhere('slip.reportedAt >= :startOfDay', { startOfDay })
+      .andWhere('slip.reportedAt <= :endOfDay', { endOfDay })
+      .getCount();
+
+    return count > 0;
+  }
 }
