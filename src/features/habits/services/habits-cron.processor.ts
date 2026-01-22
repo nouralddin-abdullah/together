@@ -165,6 +165,32 @@ export class HabitsCronProcessor extends WorkerHost {
       return;
     }
 
+    // Check if the attempt started on or before the check date
+    // If attempt started after checkDate, skip (challenge wasn't active that day)
+    const attemptStartDate = currentAttempt.startedAt
+      .toISOString()
+      .split('T')[0];
+    if (attemptStartDate > checkDate) {
+      this.logger.debug(
+        `BUILD Team ${teamId}: Attempt started on ${attemptStartDate}, after check date ${checkDate}. Skipping.`,
+      );
+      return;
+    }
+
+    // Calculate what the streak SHOULD be for this checkDate (idempotency)
+    const expectedStreak = this.calculateDaysBetween(
+      attemptStartDate,
+      checkDate,
+    );
+
+    // If current streak is already >= expected, this date was already processed
+    if (team.currentTeamStreak >= expectedStreak) {
+      this.logger.debug(
+        `BUILD Team ${teamId}: Streak already at ${team.currentTeamStreak}, expected ${expectedStreak} for ${checkDate}. Already processed.`,
+      );
+      return;
+    }
+
     // Get daily progress for the check date
     const progress = await this.teamAttemptService.getDailyProgress(
       teamId,
@@ -176,7 +202,7 @@ export class HabitsCronProcessor extends WorkerHost {
     const allCompleted = completedCount === members.length;
 
     if (allCompleted) {
-      await this.handleAllCompleted(team, currentAttempt);
+      await this.handleAllCompleted(team, currentAttempt, expectedStreak);
     } else {
       await this.handleSomeoneMissed(team, currentAttempt, progress, members);
     }
@@ -200,17 +226,19 @@ export class HabitsCronProcessor extends WorkerHost {
 
   /**
    * Handle when all team members completed their daily habit
+   * @param expectedStreak - The streak value based on days since attempt started
    */
   private async handleAllCompleted(
     team: { id: string; currentTeamStreak: number; wantedTeamStreak: number },
     currentAttempt: { id: string; attemptNumber: number },
+    expectedStreak: number,
   ): Promise<void> {
-    const newStreak = team.currentTeamStreak + 1;
+    const newStreak = expectedStreak;
     this.logger.log(
       `Team ${team.id}: All completed! Streak ${team.currentTeamStreak} -> ${newStreak}`,
     );
 
-    // Update streak
+    // Update streak to the expected value (not increment - for idempotency)
     await this.teamsService.updateTeamStreak(team.id, newStreak);
 
     // Check for milestones (every 5 days: 5, 10, 15, 20, 25, 30, etc.)
@@ -408,6 +436,21 @@ export class HabitsCronProcessor extends WorkerHost {
       return;
     }
 
+    // Calculate what the streak SHOULD be for this checkDate
+    // This prevents double-counting if CRON runs multiple times
+    const expectedStreak = this.calculateDaysBetween(
+      attemptStartDate,
+      checkDate,
+    );
+
+    // If current streak is already >= expected, this date was already processed
+    if (team.currentTeamStreak >= expectedStreak) {
+      this.logger.debug(
+        `QUIT Team ${teamId}: Streak already at ${team.currentTeamStreak}, expected ${expectedStreak} for ${checkDate}. Already processed.`,
+      );
+      return;
+    }
+
     // Check if anyone slipped on the check date
     const hadSlips = await this.teamAttemptService.hasSlipsOnDate(
       teamId,
@@ -423,23 +466,37 @@ export class HabitsCronProcessor extends WorkerHost {
       return;
     }
 
-    // No slips! Day was clean - increment streak
-    await this.handleQuitDayClean(team, currentAttempt);
+    // No slips! Day was clean - set streak to expected value
+    await this.handleQuitDayClean(team, currentAttempt, expectedStreak);
+  }
+
+  /**
+   * Calculate the number of days between two dates (inclusive of end date)
+   * e.g., 2026-01-21 to 2026-01-22 = 1 day (one full day passed)
+   */
+  private calculateDaysBetween(startDate: string, endDate: string): number {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = end.getTime() - start.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
   }
 
   /**
    * Handle when a QUIT team had a clean day (no slips)
+   * @param expectedStreak - The streak value based on days since attempt started
    */
   private async handleQuitDayClean(
     team: { id: string; currentTeamStreak: number; wantedTeamStreak: number },
     currentAttempt: { id: string; attemptNumber: number },
+    expectedStreak: number,
   ): Promise<void> {
-    const newStreak = team.currentTeamStreak + 1;
+    const newStreak = expectedStreak;
     this.logger.log(
       `QUIT Team ${team.id}: Clean day! Streak ${team.currentTeamStreak} -> ${newStreak}`,
     );
 
-    // Update streak
+    // Update streak to the expected value (not increment)
     await this.teamsService.updateTeamStreak(team.id, newStreak);
 
     // Check for milestones (every 5 days)
