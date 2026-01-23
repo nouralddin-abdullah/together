@@ -178,7 +178,7 @@ export class HabitsCronProcessor extends WorkerHost {
     }
 
     // Calculate what the streak SHOULD be for this checkDate (idempotency)
-    const expectedStreak = this.calculateDaysBetween(
+    const expectedStreak = this.calculateExpectedStreak(
       attemptStartDate,
       checkDate,
     );
@@ -438,7 +438,7 @@ export class HabitsCronProcessor extends WorkerHost {
 
     // Calculate what the streak SHOULD be for this checkDate
     // This prevents double-counting if CRON runs multiple times
-    const expectedStreak = this.calculateDaysBetween(
+    const expectedStreak = this.calculateExpectedStreak(
       attemptStartDate,
       checkDate,
     );
@@ -471,15 +471,24 @@ export class HabitsCronProcessor extends WorkerHost {
   }
 
   /**
-   * Calculate the number of days between two dates (inclusive of end date)
-   * e.g., 2026-01-21 to 2026-01-22 = 1 day (one full day passed)
+   * Calculate the expected streak for a given checkDate
+   * Streak = number of complete days since attempt started (inclusive)
+   *
+   * Examples (attempt started Jan 21):
+   * - checkDate Jan 21 → Day 1 complete → streak = 1
+   * - checkDate Jan 22 → Day 2 complete → streak = 2
+   * - checkDate Jan 23 → Day 3 complete → streak = 3
    */
-  private calculateDaysBetween(startDate: string, endDate: string): number {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = end.getTime() - start.getTime();
+  private calculateExpectedStreak(
+    startDate: string,
+    checkDate: string,
+  ): number {
+    const start = new Date(startDate + 'T00:00:00Z');
+    const check = new Date(checkDate + 'T00:00:00Z');
+    const diffTime = check.getTime() - start.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, diffDays);
+    // +1 because completing Day 1 means streak of 1
+    return Math.max(1, diffDays + 1);
   }
 
   /**
